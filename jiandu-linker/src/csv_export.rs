@@ -15,7 +15,11 @@ pub fn export_result_to_csv<P: AsRef<Path>>(result: &LinkResult, path: P) -> Res
         .map_err(|e| format!("写入 CSV 表头失败: {}", e))?;
 
     for (i, slip) in result.order.iter().enumerate() {
-        let link_score = result.link_scores.get(i);
+        let link_score = if i > 0 {
+            result.link_scores.get(i - 1)
+        } else {
+            None
+        };
 
         let total_score = link_score.map(|s| format!("{:.4}", s.total_score)).unwrap_or_default();
         let glyph_score = link_score.map(|s| format!("{:.4}", s.glyph_score)).unwrap_or_default();

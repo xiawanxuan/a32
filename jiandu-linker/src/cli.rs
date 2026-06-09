@@ -136,6 +136,11 @@ impl InteractiveCli {
         self.current_order.iter().position(|s| s.slip_id == slip_id)
     }
 
+    fn print_current_total_score(&self) {
+        let result = self.engine.compute_order_score(&self.current_order);
+        println!("  当前编连总分: {:.4}", result.total_score);
+    }
+
     fn move_slip(&mut self, arg: &str) {
         let parts: Vec<&str> = arg.split_whitespace().collect();
         if parts.len() != 2 {
@@ -158,6 +163,7 @@ impl InteractiveCli {
             let insert_idx = if target_idx > from_idx { target_idx - 1 } else { target_idx };
             self.current_order.insert(insert_idx, slip);
             println!("已将 [{}] 移动到第 {} 位", slip_id, insert_idx + 1);
+            self.print_current_total_score();
         } else {
             println!("未找到简号为 '{}' 的简牍", slip_id);
         }
@@ -178,6 +184,7 @@ impl InteractiveCli {
             let insert_idx = if from_idx < target_idx { target_idx } else { target_idx + 1 };
             self.current_order.insert(insert_idx, slip);
             println!("已将 [{}] 插入到 [{}] 之后", move_id, target_id);
+            self.print_current_total_score();
         } else {
             println!("请检查简号是否正确");
         }
@@ -198,6 +205,7 @@ impl InteractiveCli {
             let insert_idx = if from_idx < target_idx { target_idx - 1 } else { target_idx };
             self.current_order.insert(insert_idx, slip);
             println!("已将 [{}] 插入到 [{}] 之前", move_id, target_id);
+            self.print_current_total_score();
         } else {
             println!("请检查简号是否正确");
         }
@@ -216,6 +224,7 @@ impl InteractiveCli {
         if let (Some(idx1), Some(idx2)) = (self.find_slip_index(id1), self.find_slip_index(id2)) {
             self.current_order.swap(idx1, idx2);
             println!("已交换 [{}] 和 [{}] 的位置", id1, id2);
+            self.print_current_total_score();
         } else {
             println!("请检查简号是否正确");
         }
@@ -230,6 +239,7 @@ impl InteractiveCli {
     fn reset_order(&mut self) {
         self.current_order = self.slips.clone();
         println!("已重置为原始顺序");
+        self.print_current_total_score();
     }
 
     fn show_weights(&self) {
@@ -276,6 +286,7 @@ impl InteractiveCli {
         self.engine.weights.stroke_weight = stroke_weight;
         self.engine.weights.grammar_weight = grammar_weight;
         println!("权重已更新");
+        self.print_current_total_score();
     }
 
     fn show_top_pair_scores(&self, arg: &str) {
