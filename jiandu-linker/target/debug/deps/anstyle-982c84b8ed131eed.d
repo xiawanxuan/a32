@@ -1,0 +1,12 @@
+E:\trae3\a32\jiandu-linker\target\debug\deps\anstyle-982c84b8ed131eed.d: C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\lib.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\macros.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\color.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\effect.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\reset.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\style.rs
+
+E:\trae3\a32\jiandu-linker\target\debug\deps\libanstyle-982c84b8ed131eed.rlib: C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\lib.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\macros.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\color.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\effect.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\reset.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\style.rs
+
+E:\trae3\a32\jiandu-linker\target\debug\deps\libanstyle-982c84b8ed131eed.rmeta: C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\lib.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\macros.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\color.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\effect.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\reset.rs C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\style.rs
+
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\lib.rs:
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\macros.rs:
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\color.rs:
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\effect.rs:
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\reset.rs:
+C:\Users\gengq\.cargo\registry\src\rsproxy.cn-e3de039b2554c837\anstyle-1.0.14\src\style.rs:
