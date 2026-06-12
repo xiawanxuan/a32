@@ -7,12 +7,17 @@ mod scoring;
 mod cli;
 mod csv_export;
 mod fragment_matching;
+mod sift_matching;
+mod fragment_recommender;
+mod visualization;
 
 use models::Weights;
 use scoring::ScoringEngine;
 use data_loader::load_slips_from_json;
 use csv_export::export_result_to_csv;
 use fragment_matching::FragmentMatcher;
+use fragment_recommender::FragmentRecommender;
+use visualization::Visualizer;
 
 #[derive(Parser)]
 #[command(name = "jiandu-linker")]
@@ -80,6 +85,36 @@ enum Commands {
         #[arg(help = "显示前 N 对")]
         top: usize,
     },
+
+    #[command(about = "残简拼合推荐 - 基于 SIFT 特征的断裂边缘匹配")]
+    FragmentRecommend {
+        #[arg(short, long)]
+        #[arg(help = "输入 JSON 文件路径")]
+        input: String,
+
+        #[arg(short, long, default_value_t = 10)]
+        #[arg(help = "显示前 N 对")]
+        top: usize,
+
+        #[arg(long, default_value_t = 0.6)]
+        #[arg(help = "置信度阈值")]
+        threshold: f64,
+    },
+
+    #[command(about = "编连方案可视化 - ASCII 树形图展示")]
+    Visualize {
+        #[arg(short, long)]
+        #[arg(help = "输入 JSON 文件路径")]
+        input: String,
+
+        #[arg(short, long, default_value = "tree")]
+        #[arg(help = "可视化模式: tree/compact/report")]
+        mode: String,
+
+        #[arg(short, long, default_value = "output.csv")]
+        #[arg(help = "输出 CSV 文件路径（可选）")]
+        output: String,
+    },
 }
 
 fn main() {
@@ -105,6 +140,12 @@ fn main() {
         }
         Commands::FragmentMatch { input, top } => {
             run_fragment_match(input, *top);
+        }
+        Commands::FragmentRecommend { input, top, threshold } => {
+            run_fragment_recommend(input, *top, *threshold);
+        }
+        Commands::Visualize { input, mode, output } => {
+            run_visualize(&engine, input, mode, output);
         }
     }
 }
@@ -244,5 +285,109 @@ fn run_fragment_match(input: &str, top: usize) {
             m.stroke_complement,
             m.glyph_continuity
         );
+    }
+}
+
+fn run_fragment_recommend(input: &str, top: usize, threshold: f64) {
+    println!("=== 简牍编连 - 残简拼合推荐 ===");
+    println!("输入文件: {}", input);
+    println!("置信度阈值: {:.2}", threshold);
+
+    let slips = match load_slips_from_json(input) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("错误: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("加载简牍数量: {}", slips.len());
+    println!();
+    println!("正在进行 SIFT 特征离线预计算和断裂边缘匹配...");
+    println!();
+
+    let mut recommender = FragmentRecommender::new();
+    recommender.confidence_threshold = threshold;
+    let recommendation = recommender.recommend_matches(&slips);
+
+    println!("SIFT 特征提取完成，共分析 {} 对组合", recommendation.matches.len());
+    println!();
+
+    if !recommendation.recommended_merges.is_empty() {
+        println!("╔{}╗", "═".repeat(60));
+        println!("║{:^60}║", "★ 推荐优先拼合的组合 ★");
+        println!("╠{}╣", "═".repeat(60));
+        for (i, (left, right, conf)) in recommendation.recommended_merges.iter().enumerate() {
+            let level = FragmentRecommender::get_confidence_level(*conf);
+            let bar = visualization::render_confidence_bar(*conf, 20);
+            println!("║ {:2}. [{:>4}] ════► [{:>4}]  {:<28} {:>6} ║",
+                i + 1, left, right, bar, level
+            );
+        }
+        println!("╚{}╝", "═".repeat(60));
+        println!();
+    }
+
+    println!("前 {} 对候选拼合组合:", top.min(recommendation.matches.len()));
+    for (i, m) in recommendation.matches.iter().take(top).enumerate() {
+        let level = FragmentRecommender::get_confidence_level(m.confidence);
+        let bar = visualization::render_confidence_bar(m.confidence, 15);
+        println!("  {:2}. [{}] -> [{}]  {:<20}  [{:>4}]",
+            i + 1,
+            m.left_id,
+            m.right_id,
+            bar,
+            level
+        );
+        println!("      SIFT:{:.4}  几何:{:.4}  残笔:{:.4}  字形:{:.4}  匹配点:{}个",
+            m.sift_similarity,
+            m.edge_geometry_score,
+            m.stroke_continuity,
+            m.glyph_overlap_score,
+            m.matched_keypoints
+        );
+    }
+}
+
+fn run_visualize(engine: &ScoringEngine, input: &str, mode: &str, output: &str) {
+    println!("=== 简牍编连 - 方案可视化 ===");
+    println!("输入文件: {}", input);
+    println!("可视化模式: {}", mode);
+    println!();
+
+    let slips = match load_slips_from_json(input) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("错误: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("加载简牍数量: {}", slips.len());
+    println!("正在计算最优编连方案...");
+    println!();
+
+    let result = engine.find_optimal_order(&slips);
+    let visualizer = Visualizer::new();
+
+    println!("{}", "═".repeat(72));
+    match mode {
+        "compact" | "c" => {
+            println!("{}", visualizer.render_compact_tree(&result));
+        }
+        "report" | "r" => {
+            println!("{}", visualizer.render_detailed_report(&result));
+        }
+        "tree" | "t" | _ => {
+            println!("{}", visualizer.render_tree(&result));
+        }
+    }
+    println!("{}", "═".repeat(72));
+
+    if output != "output.csv" || mode == "report" {
+        match export_result_to_csv(&result, output) {
+            Ok(_) => println!("\n编连方案已导出到: {}", output),
+            Err(e) => eprintln!("导出 CSV 失败: {}", e),
+        }
     }
 }

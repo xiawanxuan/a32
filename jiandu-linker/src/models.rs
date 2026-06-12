@@ -48,3 +48,57 @@ impl Default for Weights {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct SiftFeature {
+    pub keypoint_x: f64,
+    pub keypoint_y: f64,
+    pub scale: f64,
+    pub orientation: f64,
+    pub descriptor: Vec<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EdgeFeatures {
+    pub slip_id: String,
+    pub left_edge: Vec<SiftFeature>,
+    pub right_edge: Vec<SiftFeature>,
+    pub stroke_continuation: Vec<f64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FragmentMatch {
+    pub left_id: String,
+    pub right_id: String,
+    pub confidence: f64,
+    pub sift_similarity: f64,
+    pub edge_geometry_score: f64,
+    pub stroke_continuity: f64,
+    pub glyph_overlap_score: f64,
+    pub matched_keypoints: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct FragmentRecommendation {
+    pub matches: Vec<FragmentMatch>,
+    pub recommended_merges: Vec<(String, String, f64)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VisualizationConfig {
+    pub show_scores: bool,
+    pub show_details: bool,
+    pub indent_width: usize,
+    pub max_width: usize,
+}
+
+impl Default for VisualizationConfig {
+    fn default() -> Self {
+        VisualizationConfig {
+            show_scores: true,
+            show_details: true,
+            indent_width: 4,
+            max_width: 100,
+        }
+    }
+}

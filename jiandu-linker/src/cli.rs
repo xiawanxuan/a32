@@ -2,6 +2,8 @@ use std::io::{self, BufRead, Write};
 use crate::models::{BambooSlip, LinkResult};
 use crate::scoring::ScoringEngine;
 use crate::fragment_matching::FragmentMatcher;
+use crate::fragment_recommender::FragmentRecommender;
+use crate::visualization::Visualizer;
 
 pub struct InteractiveCli {
     engine: ScoringEngine,
@@ -56,6 +58,8 @@ impl InteractiveCli {
                 "set-weights" => self.set_weights(arg),
                 "top-scores" => self.show_top_pair_scores(arg),
                 "fragment-match" | "fm" => self.show_fragment_matches(arg),
+                "fragment-recommend" | "fr" => self.show_fragment_recommendations(arg),
+                "visualize" | "viz" | "tree" => self.show_visualization(arg),
                 "done" | "exit" | "quit" => {
                     println!("退出交互模式，输出当前编连方案");
                     break;
@@ -83,6 +87,8 @@ impl InteractiveCli {
         println!("  set-weights <字形> <残笔> <语法> - 设置评分权重");
         println!("  top-scores [N]   - 显示前N对最高评分的相邻组合（默认10）");
         println!("  fragment-match [N] / fm [N] - 显示前N对残片特征高级匹配结果（默认10）");
+        println!("  fragment-recommend [N] / fr [N] - 残简拼合推荐，显示前N对候选（默认10）");
+        println!("  visualize [mode] / viz / tree - ASCII 树形图可视化 (mode: tree/compact/report)");
         println!("  done / exit      - 退出并输出结果");
     }
 
@@ -352,5 +358,89 @@ impl InteractiveCli {
                 m.glyph_continuity
             );
         }
+    }
+
+    fn show_fragment_recommendations(&mut self, arg: &str) {
+        let n: usize = if arg.is_empty() {
+            10
+        } else {
+            match arg.parse() {
+                Ok(n) => n,
+                Err(_) => {
+                    println!("无效的数字");
+                    return;
+                }
+            }
+        };
+
+        let mut recommender = FragmentRecommender::new();
+        let recommendation = recommender.recommend_matches(&self.slips);
+
+        println!("=== 残简拼合推荐 ===");
+        println!("SIFT 特征离线预计算完成，共分析 {} 对组合", recommendation.matches.len());
+        println!();
+
+        if !recommendation.recommended_merges.is_empty() {
+            println!("推荐优先拼合的组合:");
+            for (i, (left, right, conf)) in recommendation.recommended_merges.iter().enumerate() {
+                let level = FragmentRecommender::get_confidence_level(*conf);
+                let bar = crate::visualization::render_confidence_bar(*conf, 20);
+                println!("  {:2}. [{}] ════► [{}]  置信度: {} ({})",
+                    i + 1, left, right, bar, level
+                );
+            }
+            println!();
+        }
+
+        println!("前 {} 对候选拼合组合:", n.min(recommendation.matches.len()));
+        for (i, m) in recommendation.matches.iter().take(n).enumerate() {
+            let level = FragmentRecommender::get_confidence_level(m.confidence);
+            println!("  {:2}. [{}] -> [{}]: 置信度={:.4} [{}]",
+                i + 1,
+                m.left_id,
+                m.right_id,
+                m.confidence,
+                level
+            );
+            println!("      SIFT={:.4}, 几何={:.4}, 残笔={:.4}, 字形={:.4}, 匹配关键点={}个",
+                m.sift_similarity,
+                m.edge_geometry_score,
+                m.stroke_continuity,
+                m.glyph_overlap_score,
+                m.matched_keypoints
+            );
+        }
+    }
+
+    fn show_visualization(&self, arg: &str) {
+        let mode = if arg.is_empty() {
+            "tree"
+        } else {
+            arg
+        };
+
+        let result = self.engine.compute_order_score(&self.current_order);
+        let visualizer = Visualizer::new();
+
+        println!("=== 编连方案可视化 ===");
+        println!();
+
+        match mode {
+            "compact" | "c" => {
+                println!("{}", visualizer.render_compact_tree(&result));
+            }
+            "report" | "r" => {
+                println!("{}", visualizer.render_detailed_report(&result));
+            }
+            "tree" | "t" | _ => {
+                println!("{}", visualizer.render_tree(&result));
+            }
+        }
+
+        println!();
+        println!("可视化模式说明:");
+        println!("  tree    - ASCII 树形图（默认）");
+        println!("  compact - 紧凑路径图");
+        println!("  report  - 详细评分报告");
     }
 }
