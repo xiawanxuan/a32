@@ -99,22 +99,22 @@ impl GrammarDistance {
         let mut category_distance = vec![vec![0.5; n]; n];
 
         for i in 0..n {
-            category_distance[i][i] = 0.4;
+            category_distance[i][i] = 0.1;
         }
 
         category_distance[0][1] = 0.15;
         category_distance[1][0] = 0.2;
 
-        category_distance[2][0] = 0.1;
+        category_distance[2][0] = 0.2;
         category_distance[0][2] = 0.3;
 
-        category_distance[3][1] = 0.1;
+        category_distance[3][1] = 0.2;
         category_distance[1][3] = 0.3;
 
         category_distance[7][8] = 0.05;
         category_distance[8][7] = 0.15;
 
-        category_distance[4][0] = 0.15;
+        category_distance[4][0] = 0.25;
         category_distance[0][4] = 0.35;
 
         category_distance[6][1] = 0.2;
@@ -128,9 +128,6 @@ impl GrammarDistance {
 
         category_distance[9][10] = 0.3;
         category_distance[10][9] = 0.35;
-
-        category_distance[9][9] = 0.6;
-        category_distance[10][10] = 0.65;
 
         GrammarDistance {
             tag_categories,

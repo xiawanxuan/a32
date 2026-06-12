@@ -15,8 +15,8 @@ pub fn export_result_to_csv<P: AsRef<Path>>(result: &LinkResult, path: P) -> Res
         .map_err(|e| format!("写入 CSV 表头失败: {}", e))?;
 
     for (i, slip) in result.order.iter().enumerate() {
-        let link_score = if i > 0 {
-            result.link_scores.get(i - 1)
+        let link_score = if i + 1 < result.order.len() {
+            result.link_scores.get(i)
         } else {
             None
         };

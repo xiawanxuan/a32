@@ -236,7 +236,7 @@ impl InteractiveCli {
     }
 
     fn auto_order(&mut self) {
-        let result = self.engine.find_optimal_order(&self.slips);
+        let result = self.engine.find_optimal_order(&self.current_order);
         self.current_order = result.order.clone();
         println!("自动编连完成，总分: {:.4}", result.total_score);
     }
