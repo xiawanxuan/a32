@@ -87,8 +87,9 @@ impl ScoringEngine {
 
         for start_slip in slips {
             let result = self.greedy_path_from_start(start_slip, slips, &score_map, &slip_map);
-            if best_result.is_none() || result.total_score > best_result.as_ref().unwrap().total_score {
-                best_result = Some(result);
+            let improved = self.two_opt_local_search(result);
+            if best_result.is_none() || improved.total_score > best_result.as_ref().unwrap().total_score {
+                best_result = Some(improved);
             }
         }
 
@@ -97,6 +98,57 @@ impl ScoringEngine {
             total_score: 0.0,
             link_scores: Vec::new(),
         })
+    }
+
+    fn two_opt_local_search(&self, result: LinkResult) -> LinkResult {
+        let n = result.order.len();
+        if n < 4 {
+            return result;
+        }
+
+        let mut best_order = result.order.clone();
+        let mut best_total = result.total_score;
+        let mut improved = true;
+        let max_iterations = 100;
+        let mut iteration = 0;
+
+        while improved && iteration < max_iterations {
+            improved = false;
+            iteration += 1;
+
+            for i in 0..n.saturating_sub(3) {
+                for k in (i + 2)..n.saturating_sub(1) {
+                    let old_score = self.edge_score(&best_order, i)
+                        + self.edge_score(&best_order, k);
+                    let new_score = self.edge_score_reversed(&best_order, i, k);
+
+                    if new_score > old_score + 1e-9 {
+                        best_order[i + 1..=k].reverse();
+                        best_total = best_total - old_score + new_score;
+                        improved = true;
+                    }
+                }
+            }
+        }
+
+        self.compute_order_score(&best_order)
+    }
+
+    fn edge_score(&self, order: &[BambooSlip], idx: usize) -> f64 {
+        if idx + 1 >= order.len() {
+            return 0.0;
+        }
+        self.calculate_link_score(&order[idx], &order[idx + 1]).total_score
+    }
+
+    fn edge_score_reversed(&self, order: &[BambooSlip], i: usize, k: usize) -> f64 {
+        let s1 = self.calculate_link_score(&order[i], &order[k]).total_score;
+        let s2 = if k + 1 < order.len() {
+            self.calculate_link_score(&order[i + 1], &order[k + 1]).total_score
+        } else {
+            0.0
+        };
+        s1 + s2
     }
 
     fn greedy_path_from_start(

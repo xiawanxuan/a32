@@ -6,11 +6,13 @@ mod distance;
 mod scoring;
 mod cli;
 mod csv_export;
+mod fragment_matching;
 
 use models::Weights;
 use scoring::ScoringEngine;
 use data_loader::load_slips_from_json;
 use csv_export::export_result_to_csv;
+use fragment_matching::FragmentMatcher;
 
 #[derive(Parser)]
 #[command(name = "jiandu-linker")]
@@ -67,6 +69,17 @@ enum Commands {
         #[arg(help = "显示前 N 对")]
         top: usize,
     },
+
+    #[command(about = "基于残片特征的高级匹配分析")]
+    FragmentMatch {
+        #[arg(short, long)]
+        #[arg(help = "输入 JSON 文件路径")]
+        input: String,
+
+        #[arg(short, long, default_value_t = 10)]
+        #[arg(help = "显示前 N 对")]
+        top: usize,
+    },
 }
 
 fn main() {
@@ -89,6 +102,9 @@ fn main() {
         }
         Commands::TopScores { input, top } => {
             run_top_scores(&engine, input, *top);
+        }
+        Commands::FragmentMatch { input, top } => {
+            run_fragment_match(input, *top);
         }
     }
 }
@@ -116,6 +132,19 @@ fn run_auto_mode(engine: &ScoringEngine, input: &str, output: &str) {
     if !result.link_scores.is_empty() {
         let avg = result.total_score / result.link_scores.len() as f64;
         println!("平均相邻分: {:.4}", avg);
+        println!();
+        println!("相邻详情:");
+        for (i, score) in result.link_scores.iter().enumerate() {
+            println!("  {:2}. [{}] -> [{}]: 总分={:.4} (字形={:.4}, 残笔={:.4}, 语法={:.4})",
+                i + 1,
+                score.from_id,
+                score.to_id,
+                score.total_score,
+                score.glyph_score,
+                score.stroke_score,
+                score.grammar_score
+            );
+        }
     }
     println!();
     println!("编连顺序:");
@@ -182,6 +211,38 @@ fn run_top_scores(engine: &ScoringEngine, input: &str, top: usize) {
             score.glyph_score,
             score.stroke_score,
             score.grammar_score
+        );
+    }
+}
+
+fn run_fragment_match(input: &str, top: usize) {
+    println!("=== 简牍编连 - 残片特征高级匹配 ===");
+    println!("输入文件: {}", input);
+
+    let slips = match load_slips_from_json(input) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("错误: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    println!("加载简牍数量: {}", slips.len());
+    println!();
+
+    let matcher = FragmentMatcher::new();
+    let matches = matcher.find_top_matches(&slips, top);
+
+    println!("前 {} 对最高置信度的残片匹配组合:", matches.len());
+    for (i, m) in matches.iter().enumerate() {
+        println!("  {:2}. [{}] -> [{}]: 置信度={:.4} (边缘={:.4}, 残笔互补={:.4}, 字形连续={:.4})",
+            i + 1,
+            m.left_id,
+            m.right_id,
+            m.confidence,
+            m.edge_similarity,
+            m.stroke_complement,
+            m.glyph_continuity
         );
     }
 }

@@ -1,6 +1,7 @@
 use std::io::{self, BufRead, Write};
 use crate::models::{BambooSlip, LinkResult};
 use crate::scoring::ScoringEngine;
+use crate::fragment_matching::FragmentMatcher;
 
 pub struct InteractiveCli {
     engine: ScoringEngine,
@@ -54,6 +55,7 @@ impl InteractiveCli {
                 "weights" => self.show_weights(),
                 "set-weights" => self.set_weights(arg),
                 "top-scores" => self.show_top_pair_scores(arg),
+                "fragment-match" | "fm" => self.show_fragment_matches(arg),
                 "done" | "exit" | "quit" => {
                     println!("退出交互模式，输出当前编连方案");
                     break;
@@ -80,6 +82,7 @@ impl InteractiveCli {
         println!("  weights          - 显示当前评分权重");
         println!("  set-weights <字形> <残笔> <语法> - 设置评分权重");
         println!("  top-scores [N]   - 显示前N对最高评分的相邻组合（默认10）");
+        println!("  fragment-match [N] / fm [N] - 显示前N对残片特征高级匹配结果（默认10）");
         println!("  done / exit      - 退出并输出结果");
     }
 
@@ -114,21 +117,23 @@ impl InteractiveCli {
         let result = self.engine.compute_order_score(&self.current_order);
         println!("当前编连方案评分:");
         println!("  总分: {:.4}", result.total_score);
-        if !result.order.is_empty() {
+        if !result.link_scores.is_empty() {
             let avg = result.total_score / result.link_scores.len() as f64;
             println!("  平均相邻分: {:.4}", avg);
         }
-        println!("  相邻详情:");
-        for (i, score) in result.link_scores.iter().enumerate() {
-            println!("    {:2}. [{}] -> [{}]: 总分={:.4} (字形={:.4}, 残笔={:.4}, 语法={:.4})",
-                i + 1,
-                score.from_id,
-                score.to_id,
-                score.total_score,
-                score.glyph_score,
-                score.stroke_score,
-                score.grammar_score
-            );
+        if !result.link_scores.is_empty() {
+            println!("  相邻详情:");
+            for (i, score) in result.link_scores.iter().enumerate() {
+                println!("    {:2}. [{}] -> [{}]: 总分={:.4} (字形={:.4}, 残笔={:.4}, 语法={:.4})",
+                    i + 1,
+                    score.from_id,
+                    score.to_id,
+                    score.total_score,
+                    score.glyph_score,
+                    score.stroke_score,
+                    score.grammar_score
+                );
+            }
         }
     }
 
@@ -315,6 +320,36 @@ impl InteractiveCli {
                 score.glyph_score,
                 score.stroke_score,
                 score.grammar_score
+            );
+        }
+    }
+
+    fn show_fragment_matches(&self, arg: &str) {
+        let n: usize = if arg.is_empty() {
+            10
+        } else {
+            match arg.parse() {
+                Ok(n) => n,
+                Err(_) => {
+                    println!("无效的数字");
+                    return;
+                }
+            }
+        };
+
+        let matcher = FragmentMatcher::new();
+        let matches = matcher.find_top_matches(&self.slips, n);
+
+        println!("前 {} 对最高置信度的残片匹配组合:", matches.len());
+        for (i, m) in matches.iter().enumerate() {
+            println!("  {:2}. [{}] -> [{}]: 置信度={:.4} (边缘={:.4}, 残笔互补={:.4}, 字形连续={:.4})",
+                i + 1,
+                m.left_id,
+                m.right_id,
+                m.confidence,
+                m.edge_similarity,
+                m.stroke_complement,
+                m.glyph_continuity
             );
         }
     }

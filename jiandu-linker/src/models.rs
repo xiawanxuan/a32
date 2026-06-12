@@ -32,6 +32,7 @@ pub struct LinkResult {
     pub link_scores: Vec<LinkScore>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Weights {
     pub glyph_weight: f64,
     pub stroke_weight: f64,
